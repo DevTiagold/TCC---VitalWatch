@@ -10,6 +10,8 @@ interface PatientCardProps {
 export function PatientCard({ patient }: PatientCardProps) {
   const meta = statusMeta[patient.status];
   const initial = patient.name.charAt(0);
+  const bpm = patient.bpm === null ? 'Aguardando' : patient.bpm;
+  const spo2 = patient.spo2 === null ? 'Aguardando' : `${patient.spo2}%`;
 
   return (
     <Link
@@ -23,7 +25,9 @@ export function PatientCard({ patient }: PatientCardProps) {
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-lg font-black text-vital-text">{patient.name}</h3>
-            <p className="mt-1 text-sm font-semibold text-vital-muted">{patient.age} anos</p>
+            <p className="mt-1 text-sm font-semibold text-vital-muted">
+              {patient.age === null ? 'Idade nao informada' : `${patient.age} anos`}
+            </p>
           </div>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${meta.bgClass} ${meta.textClass}`}>
@@ -37,14 +41,14 @@ export function PatientCard({ patient }: PatientCardProps) {
             <HeartPulse size={18} strokeWidth={2.5} />
             <span className="text-xs font-black uppercase text-vital-muted">BPM</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-vital-text">{patient.bpm}</p>
+          <p className="mt-2 text-xl font-black text-vital-text sm:text-2xl">{bpm}</p>
         </div>
         <div className="rounded-xl bg-vital-card-soft/70 px-4 py-3">
           <div className="flex items-center gap-2 text-vital-cyan">
             <Activity size={18} strokeWidth={2.5} />
             <span className="text-xs font-black uppercase text-vital-muted">SpO2</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-vital-text">{patient.spo2}%</p>
+          <p className="mt-2 text-xl font-black text-vital-text sm:text-2xl">{spo2}</p>
         </div>
       </div>
     </Link>

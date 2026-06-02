@@ -22,7 +22,7 @@ export function VitalMetricCard({ icon: Icon, label, value, helper, tone }: Vita
       </div>
       <div className="min-w-0">
         <p className="text-sm font-bold text-vital-muted">{label}</p>
-        <p className="mt-1 text-2xl font-black text-vital-text">{value}</p>
+        <p className="mt-1 text-xl font-black text-vital-text sm:text-2xl">{value}</p>
         {helper ? <p className="mt-1 text-xs font-semibold text-vital-muted">{helper}</p> : null}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Activity, LayoutDashboard, LogOut, UserRound, UserRoundPlus, UsersRound } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/auth';
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
@@ -9,6 +10,14 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <aside className="fixed inset-y-0 left-0 z-30 flex w-20 flex-col border-r border-vital-border bg-vital-sidebar px-3 py-5 shadow-2xl shadow-black/25 lg:w-72 lg:px-6">
       <div className="flex items-center gap-3 lg:items-start">
@@ -50,6 +59,7 @@ export function Sidebar() {
       <button
         type="button"
         title="Logout"
+        onClick={handleLogout}
         className="flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold text-vital-muted transition hover:bg-vital-card hover:text-vital-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
       >
         <LogOut className="mx-auto h-5 w-5 shrink-0 lg:mx-0" strokeWidth={2.4} />

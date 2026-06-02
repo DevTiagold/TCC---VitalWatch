@@ -1,34 +1,6 @@
-export type PatientStatus = 'normal' | 'attention' | 'critical';
+import type { Patient, PatientEvent, PatientStatus, VitalPoint } from '../types/vital';
 
-export interface VitalPoint {
-  time: string;
-  bpm: number;
-  spo2: number;
-}
-
-export interface PatientEvent {
-  id: string;
-  title: string;
-  time: string;
-  tone: 'danger' | 'success' | 'info';
-}
-
-export interface Patient {
-  id: string;
-  name: string;
-  age: number;
-  status: PatientStatus;
-  bpm: number;
-  spo2: number;
-  braceletId: string;
-  cpf: string;
-  relativeEmail: string;
-  phone: string;
-  room: string;
-  updatedAt: string;
-  chartData: VitalPoint[];
-  events: PatientEvent[];
-}
+export type { Patient, PatientEvent, PatientStatus, VitalPoint } from '../types/vital';
 
 export const statusMeta: Record<
   PatientStatus,
@@ -60,6 +32,13 @@ export const statusMeta: Record<
     borderClass: 'border-vital-red',
     bgClass: 'bg-vital-red/12',
     ringClass: 'ring-vital-red/30',
+  },
+  waiting: {
+    label: 'Aguardando dados',
+    textClass: 'text-vital-muted',
+    borderClass: 'border-vital-border',
+    bgClass: 'bg-vital-card-soft',
+    ringClass: 'ring-vital-blue/20',
   },
 };
 
@@ -205,5 +184,5 @@ export const patientSummary = patients.reduce(
     ...summary,
     [patient.status]: summary[patient.status] + 1,
   }),
-  { normal: 0, attention: 0, critical: 0 } satisfies Record<PatientStatus, number>,
+  { normal: 0, attention: 0, critical: 0, waiting: 0 } satisfies Record<PatientStatus, number>,
 );

@@ -1,0 +1,31 @@
+services:
+  database:
+    image: timescale/timescaledb:latest-pg16
+    container_name: vitalwatch_db
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=vitalpass
+      - POSTGRES_DB=vitalwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: vitalwatch_app
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://admin:vitalpass@database:5432/vitalwatch?schema=public
+    env_file:
+      - .env
+    depends_on:
+      - database
+
+volumes:
+  postgres_data:

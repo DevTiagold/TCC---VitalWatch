@@ -1,20 +1,107 @@
 import { Activity, HeartPulse, Share2, UserRound } from 'lucide-react';
-import { Navigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { BackToDashboard } from '../components/BackToDashboard';
 import { EventHistory } from '../components/EventHistory';
 import { PatientChart } from '../components/PatientChart';
 import { VitalMetricCard } from '../components/VitalMetricCard';
-import { patients, statusMeta } from '../data/patients';
+import { useAuth } from '../context/auth';
+import { statusMeta } from '../data/patients';
+import { patientService } from '../services/patientService';
+import { connectVitalsSocket } from '../services/realtimeService';
+import { vitalsService } from '../services/vitalsService';
+import type { BackendVitalMeasure, Patient } from '../types/vital';
+
+const emptyChartData = [{ time: 'Aguardando', bpm: 0, spo2: 0 }];
 
 export function PatientDetailsPage() {
   const { id } = useParams();
-  const patient = patients.find((currentPatient) => currentPatient.id === id);
+  const { token, user } = useAuth();
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPatient() {
+      if (!id) return;
+      setLoading(true);
+      setError('');
+
+      try {
+        const nextPatient = await patientService.getPatientById(id);
+        if (!isMounted) return;
+
+        if (!nextPatient) {
+          setError('Paciente nao encontrado.');
+          setPatient(null);
+          return;
+        }
+
+        setPatient(nextPatient);
+
+        // O backend so expoe medias horarias para o paciente autenticado; para enfermeiras vendo outro paciente,
+        // o historico permanece mockado/aguardando ate existir uma rota por paciente_id.
+        if (user?.id === id) {
+          const chartData = await vitalsService.getAuthenticatedPatientHourlyVitals();
+          if (isMounted) setPatient((currentPatient) => (currentPatient ? { ...currentPatient, chartData } : currentPatient));
+        }
+      } catch (apiError) {
+        if (isMounted) setError(apiError instanceof Error ? apiError.message : 'Nao foi possivel carregar o paciente.');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    void loadPatient();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    if (!token || !id) return undefined;
+
+    const handleMeasure = (measure: BackendVitalMeasure) => {
+      if (measure.paciente_id !== id) return;
+
+      setPatient((currentPatient) => {
+        if (!currentPatient) return currentPatient;
+        const result = patientService.applyVitalMeasure([currentPatient], measure);
+        return result.patients[0] ?? currentPatient;
+      });
+    };
+
+    const socket = connectVitalsSocket(token, handleMeasure, (message) => setError(`Tempo real indisponivel: ${message}`));
+    return () => {
+      socket.disconnect();
+    };
+  }, [id, token]);
+
+  if (loading) {
+    return (
+      <div className="page-shell">
+        <BackToDashboard />
+        <section className="panel p-6 text-sm font-bold text-vital-muted">Carregando paciente...</section>
+      </div>
+    );
+  }
 
   if (!patient) {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <div className="page-shell">
+        <BackToDashboard />
+        <section className="panel p-6 text-sm font-bold text-vital-muted">{error || 'Paciente nao encontrado.'}</section>
+      </div>
+    );
   }
 
   const meta = statusMeta[patient.status];
+  const chartData = patient.chartData.length > 0 ? patient.chartData : emptyChartData;
+  const bpm = patient.bpm === null ? 'Aguardando' : `${patient.bpm} BPM`;
+  const spo2 = patient.spo2 === null ? 'Aguardando' : `${patient.spo2}%`;
 
   return (
     <div className="page-shell">
@@ -22,9 +109,17 @@ export function PatientDetailsPage() {
         <BackToDashboard />
         <div>
           <h2 className="text-3xl font-black tracking-normal text-vital-text sm:text-4xl">Detalhes do Paciente</h2>
-          <p className="mt-2 text-base font-semibold text-vital-muted">{patient.room} • {patient.updatedAt}</p>
+          <p className="mt-2 text-base font-semibold text-vital-muted">
+            {patient.room} - {patient.updatedAt}
+          </p>
         </div>
       </div>
+
+      {error ? (
+        <section className="rounded-xl border border-vital-yellow/40 bg-vital-yellow/10 px-4 py-3 text-sm font-bold text-vital-text">
+          {error}
+        </section>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className={`panel border-t-4 ${meta.borderClass} p-6`}>
@@ -33,15 +128,15 @@ export function PatientDetailsPage() {
               {patient.name.charAt(0)}
             </div>
             <h3 className="mt-5 text-2xl font-black text-vital-text">{patient.name}</h3>
-            <p className="mt-1 text-sm font-bold text-vital-muted">{patient.age} anos</p>
-            <span className={`mt-4 rounded-full px-4 py-2 text-sm font-black ${meta.bgClass} ${meta.textClass}`}>
-              {meta.label}
-            </span>
+            <p className="mt-1 text-sm font-bold text-vital-muted">
+              {patient.age === null ? 'Idade nao informada' : `${patient.age} anos`}
+            </p>
+            <span className={`mt-4 rounded-full px-4 py-2 text-sm font-black ${meta.bgClass} ${meta.textClass}`}>{meta.label}</span>
           </div>
 
           <div className="mt-7 grid gap-4">
-            <VitalMetricCard icon={HeartPulse} label="Batimentos" value={`${patient.bpm} BPM`} helper="Leitura atual" tone="heart" />
-            <VitalMetricCard icon={Activity} label="Oxigenação" value={`${patient.spo2}%`} helper="SpO2" tone="oxygen" />
+            <VitalMetricCard icon={HeartPulse} label="Batimentos" value={bpm} helper="Leitura atual" tone="heart" />
+            <VitalMetricCard icon={Activity} label="Oxigenacao" value={spo2} helper="SpO2" tone="oxygen" />
             <VitalMetricCard icon={UserRound} label="Pulseira" value={patient.braceletId} helper={patient.relativeEmail} tone="neutral" />
           </div>
 
@@ -56,8 +151,8 @@ export function PatientDetailsPage() {
 
         <section className="grid min-w-0 gap-6">
           <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-            <PatientChart title="Gráfico de Batimentos" data={patient.chartData} metric="bpm" color="#ff5168" suffix=" BPM" />
-            <PatientChart title="Gráfico de Oxigenação" data={patient.chartData} metric="spo2" color="#32c7ff" suffix="%" />
+            <PatientChart title="Grafico de Batimentos" data={chartData} metric="bpm" color="#ff5168" suffix=" BPM" />
+            <PatientChart title="Grafico de Oxigenacao" data={chartData} metric="spo2" color="#32c7ff" suffix="%" />
           </div>
           <EventHistory events={patient.events} />
         </section>

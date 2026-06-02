@@ -25,6 +25,11 @@ export function EventHistory({ events }: EventHistoryProps) {
     <section className="panel p-5">
       <h3 className="text-lg font-black text-vital-text">Histórico de Eventos</h3>
       <div className="mt-5 flex flex-col gap-4">
+        {events.length === 0 ? (
+          <div className="rounded-xl bg-vital-card-soft/60 p-4 text-sm font-bold text-vital-muted">
+            Nenhum evento registrado.
+          </div>
+        ) : null}
         {events.map((event) => {
           const tone = eventTone[event.tone];
           const Icon = tone.icon;
