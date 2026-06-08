@@ -50,7 +50,6 @@ export interface LoginResponse {
 
 export interface RegisterPatientRequest {
   email: string;
-  senha: string;
   nome: string;
   idade?: number | string;
   cpf?: string;

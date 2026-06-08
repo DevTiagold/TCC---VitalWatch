@@ -21,6 +21,9 @@ export function PatientDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareMessage, setShareMessage] = useState({ text: '', type: '' });
+
   useEffect(() => {
     let isMounted = true;
 
@@ -79,6 +82,22 @@ export function PatientDetailsPage() {
       socket.disconnect();
     };
   }, [id, token]);
+
+  const handleShareAccess = async () => {
+    const email = window.prompt("Digite o e-mail para compartilhar o acesso:");
+    if (!email) return;
+
+    setIsSharing(true);
+    setShareMessage({ text: '', type: '' });
+    try {
+      const response = await patientService.shareAccess(email);
+      setShareMessage({ text: response.message || 'Acesso compartilhado com sucesso!', type: 'success' });
+    } catch (err: any) {
+      setShareMessage({ text: err.message || 'Erro ao compartilhar acesso.', type: 'error' });
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -142,11 +161,18 @@ export function PatientDetailsPage() {
 
           <button
             type="button"
-            className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-vital-blue px-5 text-sm font-black text-white shadow-lg shadow-vital-blue/25 transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
+            onClick={handleShareAccess}
+            disabled={isSharing}
+            className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-vital-blue px-5 text-sm font-black text-white shadow-lg shadow-vital-blue/25 transition hover:bg-blue-400 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
           >
             <Share2 size={19} strokeWidth={2.6} />
-            Compartilhar Acesso
+            {isSharing ? 'Enviando...' : 'Compartilhar Acesso'}
           </button>
+          {shareMessage.text && (
+            <p className={`mt-3 text-center text-sm font-bold ${shareMessage.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+              {shareMessage.text}
+            </p>
+          )}
         </aside>
 
         <section className="grid min-w-0 gap-6">

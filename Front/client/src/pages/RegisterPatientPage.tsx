@@ -11,14 +11,12 @@ const initialForm = {
   email: '',
   telefone: '',
   id_micro: '',
-  senha: '',
 };
 
 export function RegisterPatientPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const updateField = (field: keyof typeof initialForm, value: string) => {
@@ -33,7 +31,6 @@ export function RegisterPatientPage() {
     try {
       await patientService.createPatient({
         email: form.email,
-        senha: form.senha,
         nome: form.nome,
         idade: form.idade ? Number(form.idade) : undefined,
         cpf: form.cpf || undefined,
@@ -87,27 +84,6 @@ export function RegisterPatientPage() {
             <input className="field" type="text" value={form.id_micro} onChange={(event) => updateField('id_micro', event.target.value)} />
           </label>
 
-          <label className="flex flex-col gap-2 md:col-span-2">
-            <span className="label">Senha Provisoria</span>
-            <div className="relative">
-              <input
-                className="field pr-12"
-                type={showPassword ? 'text' : 'password'}
-                value={form.senha}
-                onChange={(event) => updateField('senha', event.target.value)}
-                required
-              />
-              <button
-                type="button"
-                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                onClick={() => setShowPassword((currentValue) => !currentValue)}
-                className="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-vital-muted transition hover:bg-vital-card-soft hover:text-vital-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
-              >
-                {showPassword ? <EyeOff size={19} strokeWidth={2.4} /> : <Eye size={19} strokeWidth={2.4} />}
-              </button>
-            </div>
-          </label>
         </div>
 
         {error ? (

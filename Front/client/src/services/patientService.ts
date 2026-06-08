@@ -200,4 +200,11 @@ export const patientService = {
 
     return { patients: nextPatients, foundPatient };
   },
+
+  async shareAccess(emailDestino: string) {
+    return apiRequest<{ message: string }>('/infoPaciente/compartilharAcesso', {
+      method: 'POST',
+      body: JSON.stringify({ emailDestino }),
+    });
+  },
 };

@@ -51,10 +51,10 @@ export class AuthController {
       return res.status(401).json({ error: 'Não autorizado' });
     }
 
-    const { email, senha, nome, idade, cpf, telefone, id_micro } = req.body;
+    const { email, nome, idade, cpf, telefone, id_micro } = req.body;
 
-    if (!email || !senha || !nome) {
-      return res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
+    if (!email || !nome) {
+      return res.status(400).json({ error: 'Email e nome são obrigatórios' });
     }
 
     try {
@@ -63,7 +63,9 @@ export class AuthController {
         return res.status(400).json({ error: 'Email já cadastrado' });
       }
 
-      const password_hash = await bcrypt.hash(senha, 10);
+      // Gera senha aleatória de 8 caracteres
+      const senhaGerada = Math.random().toString(36).slice(-8);
+      const password_hash = await bcrypt.hash(senhaGerada, 10);
 
       // Cria o usuário e o perfil do paciente em uma única transação
       const novoPaciente = await prisma.user.create({
@@ -87,8 +89,33 @@ export class AuthController {
         },
       });
 
+      // Importar o mailer dinamicamente ou estaticamente no topo, mas farei estaticamente se puder.
+      // Vou colocar no topo.
+      const { sendMail } = await import('../lib/mailer.js');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Bem-vindo ao VitalWatch, ${nome}!</h2>
+          <p>Sua conta foi criada com sucesso.</p>
+          <p>Para acessar seu perfil, utilize as seguintes credenciais:</p>
+          <ul>
+            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Senha Temporária:</strong> ${senhaGerada}</li>
+          </ul>
+          <p>Recomendamos que você altere sua senha após o primeiro acesso.</p>
+          <a href="${frontendUrl}/login" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Acessar VitalWatch</a>
+        </div>
+      `;
+
+      await sendMail({
+        to: email,
+        subject: 'Bem-vindo ao VitalWatch - Suas credenciais de acesso',
+        html: emailHtml,
+      });
+
       return res.status(201).json({
-        message: 'Paciente registrado com sucesso',
+        message: 'Paciente registrado com sucesso. Um e-mail foi enviado com a senha.',
         paciente: {
           id: novoPaciente.id,
           email: novoPaciente.email,
