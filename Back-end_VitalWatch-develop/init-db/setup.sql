@@ -28,8 +28,6 @@ CREATE TABLE medidas_brutas (
 
 SELECT create_hypertable('medidas_brutas', 'time');
 
-
-
 CREATE MATERIALIZED VIEW estatisticas_horarias
 WITH (timescaledb.continuous) AS
 SELECT 

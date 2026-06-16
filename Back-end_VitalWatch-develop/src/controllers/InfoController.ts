@@ -6,7 +6,7 @@ export const getInfoPacienteCard = async (req: AuthRequest, res: Response): Prom
   const id = req.params.id as string;
 
   if (!id) {
-    return res.status(400).json({ error: 'ID do paciente nÃ£o fornecido na requisiÃ§Ã£o' });
+    return res.status(400).json({ error: 'ID do paciente nÃo fornecido na requisicao' });
   }
 
   try {
@@ -24,7 +24,7 @@ export const getInfoPacienteCard = async (req: AuthRequest, res: Response): Prom
     });
 
     if (!paciente) {
-      return res.status(404).json({ error: 'Paciente nÃ£o encontrado' });
+      return res.status(404).json({ error: 'Paciente nÃo encontrado' });
     }
 
     return res.json({
@@ -34,7 +34,7 @@ export const getInfoPacienteCard = async (req: AuthRequest, res: Response): Prom
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Erro ao buscar informaÃ§Ãµes do paciente' });
+    return res.status(500).json({ error: 'Erro ao buscar informações do paciente' });
   }
 };
 
@@ -52,7 +52,7 @@ export const compartilharAcesso = async (req: AuthRequest, res: Response): Promi
 
   try {
     const paciente = await prisma.user.findUnique({ where: { id: pacienteId } });
-    
+
     if (!paciente) {
       return res.status(404).json({ error: 'Paciente não encontrado' });
     }

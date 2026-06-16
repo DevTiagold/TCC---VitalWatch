@@ -4,7 +4,7 @@ export const prisma = new PrismaClient({
   log: ['query', 'error', 'warn', 'info']
 })
 
-prisma.$connect().catch((error) => {
+prisma.$connect().catch((error: unknown) => {
   console.error('Erro ao conectar ao banco de dados:', error);
   process.exit(1);
-})
+})
