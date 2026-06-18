@@ -1,0 +1,53 @@
+services:
+  database:
+    image: timescale/timescaledb:latest-pg16
+    container_name: vitalwatch_db_homolog
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./Back-end_VitalWatch-develop/init-db:/docker-entrypoint-initdb.d
+      - postgres_data_homolog:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./Back-end_VitalWatch-develop
+      dockerfile: Dockerfile
+    container_name: vitalwatch_backend_homolog
+    restart: always
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL}
+      - MQTT_TOPIC_VITALS=${MQTT_TOPIC_VITALS}
+      - MQTT_TOPIC_ALERTS=${MQTT_TOPIC_ALERTS}
+    depends_on:
+      - database
+
+  frontend:
+    build:
+      context: ./Front/client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: vitalwatch_frontend_homolog
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data_homolog:
