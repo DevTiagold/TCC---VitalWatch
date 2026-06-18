@@ -6,7 +6,7 @@ import { StatusSummaryCard } from '../components/StatusSummaryCard';
 import { useAuth } from '../context/auth';
 import { patientService } from '../services/patientService';
 import { connectVitalsSocket } from '../services/realtimeService';
-import type { BackendVitalMeasure, Patient } from '../types/vital';
+import type { BackendAlertWs, BackendVitalMeasure, Patient } from '../types/vital';
 
 export function DashboardPage() {
   const { token } = useAuth();
@@ -74,7 +74,14 @@ export function DashboardPage() {
       });
     };
 
-    const socket = connectVitalsSocket(token, handleMeasure, setSocketError);
+    const handleAlert = (alert: BackendAlertWs) => {
+      setPatients((currentPatients) => {
+        const result = patientService.applyAlert(currentPatients, alert);
+        return result.patients;
+      });
+    };
+
+    const socket = connectVitalsSocket(token, handleMeasure, setSocketError, handleAlert);
     return () => {
       socket.disconnect();
     };

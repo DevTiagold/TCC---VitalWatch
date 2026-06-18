@@ -7,10 +7,10 @@ import { PatientChart } from '../components/PatientChart';
 import { VitalMetricCard } from '../components/VitalMetricCard';
 import { useAuth } from '../context/auth';
 import { statusMeta } from '../data/patients';
-import { patientService } from '../services/patientService';
+import { patientService, alertRecenteToEvent, alertWsToEvent } from '../services/patientService';
 import { connectVitalsSocket } from '../services/realtimeService';
 import { vitalsService } from '../services/vitalsService';
-import type { BackendVitalMeasure, Patient } from '../types/vital';
+import type { BackendAlertWs, BackendVitalMeasure, Patient, PatientEvent } from '../types/vital';
 
 const emptyChartData = [{ time: 'Aguardando', bpm: 0, spo2: 0 }];
 
@@ -24,6 +24,7 @@ export function PatientDetailsPage() {
   const [isSharing, setIsSharing] = useState(false);
   const [shareMessage, setShareMessage] = useState({ text: '', type: '' });
 
+  // Carga inicial: dados do paciente + alertas recentes do banco
   useEffect(() => {
     let isMounted = true;
 
@@ -42,7 +43,21 @@ export function PatientDetailsPage() {
           return;
         }
 
-        setPatient(nextPatient);
+        // Buscar alertas recentes do banco de dados
+        let alertEvents: PatientEvent[] = [];
+        try {
+          const alertas = await patientService.getAlertasRecentes(id);
+          alertEvents = alertas.map(alertRecenteToEvent);
+        } catch {
+          // Sem alertas disponíveis (endpoint pode não estar disponível ainda)
+        }
+
+        // Mesclar alertas do banco com eventos existentes
+        const mergedEvents = alertEvents.length > 0
+          ? [...alertEvents, ...nextPatient.events.filter((e) => !e.id.startsWith('alert-'))].slice(0, 10)
+          : nextPatient.events;
+
+        setPatient({ ...nextPatient, events: mergedEvents });
 
         // O backend so expoe medias horarias para o paciente autenticado; para enfermeiras vendo outro paciente,
         // o historico permanece mockado/aguardando ate existir uma rota por paciente_id.
@@ -64,6 +79,7 @@ export function PatientDetailsPage() {
     };
   }, [id, user?.id]);
 
+  // WebSocket: medidas + alertas em tempo real
   useEffect(() => {
     if (!token || !id) return undefined;
 
@@ -77,7 +93,30 @@ export function PatientDetailsPage() {
       });
     };
 
-    const socket = connectVitalsSocket(token, handleMeasure, (message) => setError(`Tempo real indisponivel: ${message}`));
+    const handleAlert = (alert: BackendAlertWs) => {
+      if (alert.paciente_id !== id) return;
+
+      setPatient((currentPatient) => {
+        if (!currentPatient) return currentPatient;
+
+        const event = alertWsToEvent(alert);
+        const result = patientService.applyAlert([currentPatient], alert);
+        const updatedPatient = result.patients[0] ?? currentPatient;
+
+        // Garantir que o evento do alerta está no topo do histórico
+        const hasEvent = updatedPatient.events.some((e) => e.id === event.id);
+        if (!hasEvent) {
+          return {
+            ...updatedPatient,
+            events: [event, ...updatedPatient.events.slice(0, 9)],
+          };
+        }
+
+        return updatedPatient;
+      });
+    };
+
+    const socket = connectVitalsSocket(token, handleMeasure, (message) => setError(`Tempo real indisponivel: ${message}`), handleAlert);
     return () => {
       socket.disconnect();
     };

@@ -7,6 +7,7 @@ import { SECRET_KEY } from './middlewares/authMiddleware.js';
 import medidasRoutes from './routes/medidas.js';
 import authRoutes from './routes/auth.js';
 import infoPacienteRoutes from './routes/infoPaciente.js';
+import alertasRoutes from './routes/alertas.js';
 import { initMqttClient } from './lib/mqttClient.js';
 
 const app = express();
@@ -65,6 +66,7 @@ app.use(express.json()); // Permite que o servidor entenda JSON no corpo das req
 app.use('/medidas', medidasRoutes);
 app.use('/auth', authRoutes);
 app.use('/infoPaciente', infoPacienteRoutes);
+app.use('/alertas', alertasRoutes);
 
 // Inicializa o cliente MQTT para receber medidas do ESP32 via broker
 initMqttClient(io);

@@ -35,6 +35,7 @@ model Paciente {
   telefone String?  @db.VarChar(20)
 
   medidas  Medida[]
+  alertas  AlertaBruto[]
 
   @@map("pacientes")
 }
@@ -64,4 +65,29 @@ view EstatisticasHorarias {
   max_oxigenacao   Int
 
   @@map("estatisticas_horarias")
+}
+
+// Tabela de Alertas (TimescaleDB hypertable)
+model AlertaBruto {
+  time        DateTime @default(now())
+  paciente_id String   @db.Uuid
+  paciente    Paciente @relation(fields: [paciente_id], references: [paciente_id], onDelete: Cascade)
+  tipo        String   @db.VarChar(50)
+  severidade  String   @db.VarChar(50)
+  nivel       Int
+
+  @@id([time, paciente_id])
+  @@map("alertas_brutos")
+}
+
+// Continuous Aggregate de Alertas por Hora
+view AlertasHorarios {
+  data_referencia  DateTime @unique
+  paciente_id      String   @db.Uuid
+  total_alertas    Int
+  pior_nivel       Int
+  alertas_criticos Int
+  alertas_atencao  Int
+
+  @@map("alertas_horarios")
 }

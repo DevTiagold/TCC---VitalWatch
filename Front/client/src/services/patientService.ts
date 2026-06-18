@@ -1,5 +1,7 @@
 import { patients as fallbackPatients } from '../data/patients';
 import type {
+  BackendAlertRecente,
+  BackendAlertWs,
   BackendVitalMeasure,
   Patient,
   PatientCardResponse,
@@ -50,7 +52,24 @@ function formatHour(value: string) {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function getStatusFromVitals(bpm: number | null, spo2: number | null): Patient['status'] {
+/**
+ * Determina o status do paciente baseado nos sinais vitais e no alertLevel.
+ *
+ * Prioridade: alertLevel (vindo do ESP32 via backend) > cálculo local (fallback).
+ */
+export function getStatusFromVitals(
+  bpm: number | null,
+  spo2: number | null,
+  alertLevel?: 1 | 2 | 3,
+): Patient['status'] {
+  // Se há alertLevel vindo do backend, usa ele como prioridade
+  if (alertLevel !== undefined) {
+    if (alertLevel === 3) return 'critical';
+    if (alertLevel === 2) return 'attention';
+    return 'normal';
+  }
+
+  // Fallback: cálculo local com thresholds hardcoded
   if (bpm === null || spo2 === null) return 'waiting';
   if (spo2 < 90 || bpm > 110 || bpm < 50) return 'critical';
   if (spo2 < 95 || bpm > 100 || bpm < 60) return 'attention';
@@ -87,6 +106,65 @@ function normalizePatient(
 async function getPatientCard(id: string) {
   return apiRequest<PatientCardResponse>(`/infoPaciente/card/${id}`);
 }
+
+// ================================================
+// Helpers de Alerta
+// ================================================
+
+/**
+ * Gera um título legível em PT-BR para o alerta (no caso de alertas vindos do REST).
+ */
+function generateAlertTitleFromRecente(tipo: string, severidade: string): string {
+  const titles: Record<string, string> = {
+    heart_rate_very_low: 'Batimento cardíaco muito baixo',
+    heart_rate_low: 'Batimento cardíaco baixo',
+    heart_rate_normal: 'Batimento cardíaco normalizado',
+    heart_rate_high: 'Batimento cardíaco elevado',
+    heart_rate_very_high: 'Batimento cardíaco muito alto',
+    spo2_very_low: 'Oxigenação crítica',
+    spo2_low: 'Oxigenação baixa',
+    spo2_normal: 'Oxigenação normalizada',
+  };
+
+  return titles[`${tipo}_${severidade}`] || `Alerta: ${tipo} (${severidade})`;
+}
+
+/**
+ * Converte nível de alerta para o tone do EventHistory.
+ */
+function alertLevelToTone(nivel: number): PatientEvent['tone'] {
+  if (nivel === 3) return 'danger';
+  if (nivel === 2) return 'info';
+  return 'success';
+}
+
+/**
+ * Converte um alerta bruto do REST em PatientEvent para o EventHistory.
+ */
+export function alertRecenteToEvent(alerta: BackendAlertRecente): PatientEvent {
+  return {
+    id: `alert-${alerta.time}-${alerta.tipo}`,
+    title: generateAlertTitleFromRecente(alerta.tipo, alerta.severidade),
+    time: formatHour(alerta.time),
+    tone: alertLevelToTone(alerta.nivel),
+  };
+}
+
+/**
+ * Converte um alerta WebSocket em PatientEvent para o EventHistory.
+ */
+export function alertWsToEvent(alerta: BackendAlertWs): PatientEvent {
+  return {
+    id: `alert-${alerta.criado_em}-${alerta.tipo}`,
+    title: alerta.titulo,
+    time: formatHour(alerta.criado_em),
+    tone: alertLevelToTone(alerta.alertLevel),
+  };
+}
+
+// ================================================
+// Patient Service
+// ================================================
 
 export const patientService = {
   async createPatient(payload: RegisterPatientRequest) {
@@ -180,7 +258,7 @@ export const patientService = {
         ...patient,
         bpm: measure.batimentos,
         spo2: measure.oxigenacao,
-        status: getStatusFromVitals(measure.batimentos, measure.oxigenacao),
+        status: getStatusFromVitals(measure.batimentos, measure.oxigenacao, measure.alertLevel),
         updatedAt: 'Atualizado agora',
         chartData: [...patient.chartData.slice(-6), chartPoint],
         events: [
@@ -199,6 +277,40 @@ export const patientService = {
     });
 
     return { patients: nextPatients, foundPatient };
+  },
+
+  /**
+   * Aplica um alerta WebSocket ao array de pacientes.
+   * Atualiza o status do card e adiciona o evento ao histórico.
+   */
+  applyAlert(patients: Patient[], alert: BackendAlertWs) {
+    let foundPatient = false;
+
+    const nextPatients = patients.map((patient) => {
+      if (patient.id !== alert.paciente_id) return patient;
+      foundPatient = true;
+
+      const event = alertWsToEvent(alert);
+      const newStatus = getStatusFromVitals(patient.bpm, patient.spo2, alert.alertLevel);
+
+      const nextPatient = {
+        ...patient,
+        status: newStatus,
+        events: [event, ...patient.events.slice(0, 9)],
+      };
+
+      mergeCachedPatient(nextPatient);
+      return nextPatient;
+    });
+
+    return { patients: nextPatients, foundPatient };
+  },
+
+  /**
+   * Busca alertas recentes (últimas 2h) de um paciente via REST.
+   */
+  async getAlertasRecentes(pacienteId: string) {
+    return apiRequest<BackendAlertRecente[]>(`/alertas/recentes/${pacienteId}`);
   },
 
   async shareAccess(emailDestino: string) {

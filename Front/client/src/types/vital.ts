@@ -87,6 +87,33 @@ export interface BackendVitalMeasure {
   batimentos: number;
   oxigenacao: number;
   time: string;
+  alertLevel?: 1 | 2 | 3;
+}
+
+export interface BackendAlertRecente {
+  time: string;
+  paciente_id: string;
+  tipo: string;
+  severidade: string;
+  nivel: 1 | 2 | 3;
+}
+
+export interface BackendAlertWs {
+  paciente_id: string;
+  alertLevel: 1 | 2 | 3;
+  tipo: string;
+  severidade: string;
+  titulo: string;
+  criado_em: string;
+}
+
+export interface BackendAlertHistorico {
+  data_referencia: string;
+  paciente_id: string;
+  total_alertas: number;
+  pior_nivel: number;
+  alertas_criticos: number;
+  alertas_atencao: number;
 }
 
 export interface HourlyAverageResponse {
