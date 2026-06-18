@@ -6,6 +6,12 @@ const BROKER_URL = 'mqtt://broker.hivemq.com:1883';
 const VITALS_TOPIC = 'VitalsWatch/+/vitals';
 const ALERTS_TOPIC = 'VitalsWatch/+/alerts';
 
+let mqttClient: mqtt.MqttClient | null = null;
+
+export function getMqttClient() {
+  return mqttClient;
+}
+
 interface VitalsPayload {
   bpm: number;
   spo2: number;
@@ -23,6 +29,8 @@ export function startMqttSubscriber(io: Server) {
     clientId: `vitalwatch-backend-${Date.now()}`,
     reconnectPeriod: 5000,
   });
+
+  mqttClient = client;
 
   client.on('connect', () => {
     console.log('[MQTT] Conectado ao broker HiveMQ');

@@ -1,6 +1,7 @@
-import { Activity, HeartPulse, Share2, UserRound } from 'lucide-react';
+import { Activity, HeartPulse, Play, RotateCcw, Settings, Share2, Square, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { deviceConfigService } from '../services/deviceConfigService';
 import { BackToDashboard } from '../components/BackToDashboard';
 import { EventHistory } from '../components/EventHistory';
 import { PatientChart } from '../components/PatientChart';
@@ -20,6 +21,20 @@ export function PatientDetailsPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [commandState, setCommandState] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
+
+  const sendCommand = async (command: 'START' | 'STOP' | 'REBOOT') => {
+    if (!id || commandState === 'sending') return;
+    setCommandState('sending');
+    try {
+      await deviceConfigService.sendCommand(id, command);
+      setCommandState('ok');
+    } catch {
+      setCommandState('error');
+    } finally {
+      setTimeout(() => setCommandState('idle'), 2500);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -140,13 +155,67 @@ export function PatientDetailsPage() {
             <VitalMetricCard icon={UserRound} label="Pulseira" value={patient.braceletId} helper={patient.relativeEmail} tone="neutral" />
           </div>
 
-          <button
-            type="button"
-            className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-vital-blue px-5 text-sm font-black text-white shadow-lg shadow-vital-blue/25 transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
-          >
-            <Share2 size={19} strokeWidth={2.6} />
-            Compartilhar Acesso
-          </button>
+          <div className="mt-7 grid gap-3">
+            <button
+              type="button"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-vital-blue px-5 text-sm font-black text-white shadow-lg shadow-vital-blue/25 transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
+            >
+              <Share2 size={19} strokeWidth={2.6} />
+              Compartilhar Acesso
+            </button>
+            <Link
+              to={`/paciente/${patient.id}/configurar`}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-vital-border bg-vital-card-soft px-5 text-sm font-black text-vital-text transition hover:border-vital-blue/50 hover:text-vital-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
+            >
+              <Settings size={19} strokeWidth={2.4} />
+              Configurar Dispositivo
+            </Link>
+
+            <div className="flex items-center gap-3 pt-1">
+              <div className="h-px flex-1 bg-vital-border" />
+              <span className="text-xs font-black uppercase tracking-widest text-vital-muted">Pulseira</span>
+              <div className="h-px flex-1 bg-vital-border" />
+            </div>
+
+            {/* Feedback de comando */}
+            {commandState === 'ok' && (
+              <p className="text-center text-xs font-bold text-vital-green">Comando enviado para a pulseira</p>
+            )}
+            {commandState === 'error' && (
+              <p className="text-center text-xs font-bold text-vital-red">Falha ao enviar comando</p>
+            )}
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                disabled={commandState === 'sending'}
+                onClick={() => sendCommand('START')}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 px-2 text-xs font-black text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+              >
+                <Play size={14} strokeWidth={2.6} />
+                Iniciar
+              </button>
+              <button
+                type="button"
+                disabled={commandState === 'sending'}
+                onClick={() => sendCommand('STOP')}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-vital-red/15 px-2 text-xs font-black text-vital-red transition hover:bg-vital-red/25 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-red/60"
+              >
+                <Square size={14} strokeWidth={2.6} />
+                Parar
+              </button>
+              <button
+                type="button"
+                disabled={commandState === 'sending'}
+                onClick={() => sendCommand('REBOOT')}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-vital-border bg-vital-card-soft px-2 text-xs font-black text-vital-muted transition hover:border-vital-blue/40 hover:text-vital-text disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vital-blue/60"
+              >
+                <RotateCcw size={14} strokeWidth={2.6} />
+                Reiniciar
+              </button>
+            </div>
+            <p className="text-center text-xs font-bold text-vital-muted">Controle remoto da pulseira de monitoramento</p>
+          </div>
         </aside>
 
         <section className="grid min-w-0 gap-6">
