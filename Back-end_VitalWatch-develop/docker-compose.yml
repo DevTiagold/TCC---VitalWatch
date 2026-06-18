@@ -21,7 +21,7 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
-      - DATABASE_URL=postgresql://admin:vitalpass@database:5432/vitalwatch?schema=public
+      - DATABASE_URL=${DATABASE_URL}
     env_file:
       - .env
     depends_on:
