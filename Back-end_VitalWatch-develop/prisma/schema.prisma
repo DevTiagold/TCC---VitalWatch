@@ -1,0 +1,67 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["views"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email                 String     @unique
+  password_hash         String
+  nome                  String?    @db.VarChar(100)
+  role                  String     @default("paciente") @db.VarChar(50)
+  paciente              Paciente?  @relation("UserPaciente")
+  pacientes_registrados Paciente[] @relation("EnfermeiraPacientes")
+
+  @@map("users")
+}
+
+model Paciente {
+  paciente_id String @id @db.Uuid
+  user        User   @relation("UserPaciente", fields: [paciente_id], references: [id], onDelete: Cascade)
+
+  enfermeira_id String? @db.Uuid
+  enfermeira    User?   @relation("EnfermeiraPacientes", fields: [enfermeira_id], references: [id], onDelete: SetNull)
+
+  id_micro String?  @unique @db.VarChar(100)
+  nome     String?  @db.VarChar(100)
+  idade    Int?
+  cpf      String?  @unique @db.VarChar(14)
+  telefone String?  @db.VarChar(20)
+
+  medidas  Medida[]
+
+  @@map("pacientes")
+}
+
+// Tabela de Séries Temporais (TimescaleDB)
+model Medida {
+  time        DateTime @default(now())
+  paciente_id String   @db.Uuid
+  paciente    Paciente @relation(fields: [paciente_id], references: [paciente_id], onDelete: Cascade)
+  batimentos  Int
+  oxigenacao  Int
+
+  @@id([time, paciente_id])
+  @@map("medidas_brutas")
+}
+
+
+
+view EstatisticasHorarias {
+  data_referencia  DateTime @unique
+  paciente_id      String   @db.Uuid
+  media_batimentos Int
+  media_oxigenacao Int
+  min_batimentos   Int
+  max_batimentos   Int
+  min_oxigenacao   Int
+  max_oxigenacao   Int
+
+  @@map("estatisticas_horarias")
+}

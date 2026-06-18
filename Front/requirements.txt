@@ -1,0 +1,10 @@
+# Este projeto e um frontend Node.js/Vite e nao possui dependencias Python.
+# As dependencias da aplicacao ficam em client/package.json.
+#
+# Para instalar:
+#   cd client
+#   npm install
+#
+# Requisitos recomendados:
+#   Node.js 20+
+#   npm 10+

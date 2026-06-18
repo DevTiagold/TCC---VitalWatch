@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-vital-bg: var(--vital-bg);
+  --color-vital-sidebar: var(--vital-sidebar);
+  --color-vital-panel: var(--vital-panel);
+  --color-vital-card: var(--vital-card);
+  --color-vital-card-soft: var(--vital-card-soft);
+  --color-vital-border: var(--vital-border);
+  --color-vital-text: var(--vital-text);
+  --color-vital-muted: var(--vital-muted);
+  --color-vital-blue: #2492ff;
+  --color-vital-green: #20d47b;
+  --color-vital-yellow: #f5c84b;
+  --color-vital-red: #ff5168;
+  --color-vital-cyan: #32c7ff;
+}
+
+:root {
+  --vital-bg: #f3f6fb;
+  --vital-sidebar: #ffffff;
+  --vital-panel: #ffffff;
+  --vital-card: #f8fafc;
+  --vital-card-soft: #eef4fb;
+  --vital-border: #d8e1ec;
+  --vital-text: #162033;
+  --vital-muted: #64748b;
+}
+
+.dark {
+  --vital-bg: #07111f;
+  --vital-sidebar: #0a1627;
+  --vital-panel: #0f2138;
+  --vital-card: #132b45;
+  --vital-card-soft: #173552;
+  --vital-border: #24415f;
+  --vital-text: #f5f8fc;
+  --vital-muted: #91a6bd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #f3f6fb;
+  color-scheme: light;
+}
+
+html.dark {
+  background: #07111f;
+  color-scheme: dark;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at top right, rgba(36, 146, 255, 0.1), transparent 34rem),
+    linear-gradient(145deg, #f8fbff 0%, #f3f6fb 48%, #edf3fa 100%);
+  color: var(--vital-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html.dark body {
+  background:
+    radial-gradient(circle at top right, rgba(36, 146, 255, 0.12), transparent 34rem),
+    linear-gradient(145deg, #07111f 0%, #081827 48%, #06101c 100%);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(36, 146, 255, 0.35);
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-lg border border-vital-border bg-vital-sidebar px-4 py-3 text-sm font-semibold text-vital-text outline-none transition placeholder:text-vital-muted/70 focus:border-vital-blue focus:ring-2 focus:ring-vital-blue/25;
+  }
+
+  .label {
+    @apply text-sm font-bold text-vital-text;
+  }
+
+  .page-shell {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-8;
+  }
+
+  .panel {
+    @apply rounded-2xl border border-vital-border/80 bg-vital-panel/95 shadow-xl shadow-slate-900/10 dark:shadow-2xl dark:shadow-black/20;
+  }
+}
