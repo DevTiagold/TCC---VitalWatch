@@ -7,7 +7,10 @@ import { SECRET_KEY } from './middlewares/authMiddleware.js';
 import medidasRoutes from './routes/medidas.js';
 import authRoutes from './routes/auth.js';
 import infoPacienteRoutes from './routes/infoPaciente.js';
+import deviceRoutes from './routes/device.js';
 import { initMqttClient } from './lib/mqttClient.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -65,11 +68,14 @@ app.use(express.json()); // Permite que o servidor entenda JSON no corpo das req
 app.use('/medidas', medidasRoutes);
 app.use('/auth', authRoutes);
 app.use('/infoPaciente', infoPacienteRoutes);
+app.use('/device', deviceRoutes);
 
-// Inicializa o cliente MQTT para receber medidas do ESP32 via broker
-initMqttClient(io);
+// Swagger API Docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Inicialização
 httpServer.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
+  // Inicializa o cliente MQTT após o servidor estar pronto
+  initMqttClient(io);
 });

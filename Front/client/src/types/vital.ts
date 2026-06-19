@@ -89,6 +89,13 @@ export interface BackendVitalMeasure {
   time: string;
 }
 
+export interface BackendAlertEvent {
+  paciente_id: string;
+  type: 'heart_rate' | 'spo2';
+  severity: 'very_low' | 'low' | 'high' | 'very_high';
+  time: string;
+}
+
 export interface HourlyAverageResponse {
   hora: string;
   media: number;

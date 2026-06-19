@@ -2,6 +2,9 @@
     "folders": [
         {
             "path": "../../.."
+        },
+        {
+            "path": "../../../../../../Downloads/TCC---VitalWatch-master-integration/TCC---VitalWatch-master-integration"
         }
     ]
 }

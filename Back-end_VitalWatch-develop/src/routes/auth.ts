@@ -16,4 +16,6 @@ router.post('/pacienteRegistro', authMiddleware, requireNurseRole, AuthControlle
 // Rota protegida: Troca de Senha
 router.put('/change-password', authMiddleware, AuthController.changePassword);
 
+router.delete('/paciente/:id', authMiddleware, requireNurseRole, AuthController.pacienteDelete);
+
 export default router;

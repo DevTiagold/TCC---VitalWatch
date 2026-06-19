@@ -1,5 +1,6 @@
 import { patients as fallbackPatients } from '../data/patients';
 import type {
+  BackendAlertEvent,
   BackendVitalMeasure,
   Patient,
   PatientCardResponse,
@@ -201,10 +202,63 @@ export const patientService = {
     return { patients: nextPatients, foundPatient };
   },
 
+  applyAlertEvent(patients: Patient[], alert: BackendAlertEvent) {
+    const alertedAt = formatHour(alert.time);
+    const isCritical = alert.severity === 'very_low' || alert.severity === 'very_high';
+
+    const severityLabel: Record<BackendAlertEvent['severity'], string> = {
+      very_low: 'Muito Baixo',
+      low: 'Baixo',
+      high: 'Alto',
+      very_high: 'Muito Alto',
+    };
+    const typeLabel: Record<BackendAlertEvent['type'], string> = {
+      heart_rate: 'Batimento Cardíaco',
+      spo2: 'Oxigenação',
+    };
+
+    const title = `Alerta ${typeLabel[alert.type]}: ${severityLabel[alert.severity]}`;
+
+    const nextPatients = patients.map((patient) => {
+      if (patient.id !== alert.paciente_id) return patient;
+
+      const event: PatientEvent = {
+        id: `alert-${alert.paciente_id}-${alert.time}`,
+        title,
+        time: alertedAt,
+        tone: isCritical ? 'danger' : 'info',
+      };
+
+      const nextPatient = {
+        ...patient,
+        events: [event, ...patient.events.slice(0, 4)],
+      };
+
+      mergeCachedPatient(nextPatient);
+      return nextPatient;
+    });
+
+    return nextPatients;
+  },
+
   async shareAccess(emailDestino: string) {
     return apiRequest<{ message: string }>('/infoPaciente/compartilharAcesso', {
       method: 'POST',
       body: JSON.stringify({ emailDestino }),
     });
+  },
+
+  async deletePatient(id: string) {
+    // Exclui do backend
+    const response = await apiRequest<{ message: string }>(`/auth/paciente/${id}`, {
+      method: 'DELETE',
+    });
+    
+    // Remove do cache local
+    const patients = getCachedPatients();
+    const nextPatients = patients.filter(p => p.id !== id);
+    saveCachedPatients(nextPatients);
+    
+    return response;
   },
 };

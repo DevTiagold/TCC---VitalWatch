@@ -210,4 +210,38 @@ export class AuthController {
       return res.status(500).json({ error: 'Erro interno no servidor' });
     }
   }
+
+  // Rota Protegida: Deletar Paciente (Apenas enfermeiras)
+  static async pacienteDelete(req: AuthRequest, res: Response): Promise<any> {
+    const enfermeira_id = req.user?.id;
+    const id = req.params.id as string;
+
+    if (!enfermeira_id) {
+      return res.status(401).json({ error: 'Não autorizado' });
+    }
+
+    try {
+      // Verifica se o paciente existe e se a role é paciente
+      const user = await prisma.user.findUnique({ where: { id } });
+
+      if (!user || user.role !== 'paciente') {
+        return res.status(404).json({ error: 'Paciente não encontrado' });
+      }
+
+      // Opcional: checar se foi essa enfermeira que cadastrou, mas pelo plano permitiremos a exclusão.
+      // Se quiséssemos restringir:
+      // const pacienteData = await prisma.paciente.findUnique({ where: { paciente_id: id } });
+      // if (pacienteData?.enfermeira_id !== enfermeira_id) { ... }
+
+      // Deleta o usuário. O Prisma está configurado com onDelete: Cascade para Paciente e Medidas
+      await prisma.user.delete({
+        where: { id }
+      });
+
+      return res.json({ message: 'Paciente excluído com sucesso' });
+    } catch (error) {
+      console.error('Erro ao excluir paciente:', error);
+      return res.status(500).json({ error: 'Erro interno no servidor ao excluir paciente' });
+    }
+  }
 }

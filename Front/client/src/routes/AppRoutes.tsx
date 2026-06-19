@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { AdminProfilePage } from '../pages/AdminProfilePage';
 import { DashboardPage } from '../pages/DashboardPage';
+import { DeviceConfigPage } from '../pages/DeviceConfigPage';
 import { Login } from '../pages/Login';
 import { PatientDetailsPage } from '../pages/PatientDetailsPage';
 import { PatientsPage } from '../pages/PatientsPage';
@@ -20,6 +21,7 @@ export function AppRoutes() {
           <Route path="cadastrar-paciente" element={<RegisterPatientPage />} />
           <Route path="perfil" element={<AdminProfilePage />} />
           <Route path="paciente/:id" element={<PatientDetailsPage />} />
+          <Route path="paciente/:id/configurar" element={<DeviceConfigPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Route>

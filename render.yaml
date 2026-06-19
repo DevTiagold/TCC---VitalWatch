@@ -1,0 +1,61 @@
+services:
+  # 1. Banco de Dados (TimescaleDB) - Serviço Privado
+  - type: pserv
+    name: vitalwatch-db
+    env: docker
+    dockerfilePath: Back-end_VitalWatch-develop/init-db/Dockerfile
+    dockerContext: Back-end_VitalWatch-develop/init-db
+    plan: starter # Instâncias Docker no Render requerem plano Starter ou superior
+    disk:
+      name: vitalwatch-db-disk
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+    envVars:
+      - key: POSTGRES_USER
+        value: admin
+      - key: POSTGRES_PASSWORD
+        generateValue: true # Gera uma senha segura automaticamente no Render
+      - key: POSTGRES_DB
+        value: vitalwatch
+
+  # 2. Servidor Backend (Node.js/Express) - Serviço Web Público
+  - type: web
+    name: vitalwatch-backend
+    env: docker
+    dockerfilePath: Back-end_VitalWatch-develop/Dockerfile
+    dockerContext: Back-end_VitalWatch-develop
+    plan: starter # Instâncias Docker no Render requerem plano Starter ou superior
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        value: postgresql://admin:${vitalwatch-db.POSTGRES_PASSWORD}@vitalwatch-db:5432/vitalwatch?schema=public
+      - key: JWT_SECRET
+        generateValue: true # Gera um segredo JWT aleatório no Render
+      - key: FRONTEND_URL
+        value: https://${vitalwatch-frontend.host} # Pega a URL pública do frontend dinamicamente
+      - key: MQTT_BROKER_URL
+        value: mqtt://broker.hivemq.com
+      - key: MQTT_TOPIC_VITALS
+        value: VitalsWatch/+/vitals
+      - key: MQTT_TOPIC_ALERTS
+        value: VitalsWatch/+/alerts
+      # Configurações de e-mail (Marque como sync: false para que você preencha no painel do Render)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+
+  # 3. Frontend (React/Vite) - Site Estático (Grátis)
+  - type: web
+    name: vitalwatch-frontend
+    env: static
+    buildCommand: cd Front/client && npm install && npm run build
+    publishPath: Front/client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://${vitalwatch-backend.host} # Pega a URL pública do backend dinamicamente
